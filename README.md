@@ -12,6 +12,24 @@ Implementation of a ranked enumeration algorithm for acyclic conjunctive queries
 - Full-output enumeration (no projection)
 - Deterministic tie-breaking by `(score, output_tuple_lex)`
 - Ranked iterator + `top_k(k)` helper
+- Ranking models:
+  - `AdditiveRankModel`
+  - `ConstantRankModel`
+  - `TupleBasedRankModel`
+  - `VertexBasedRankModel`
+  - `LexicographicRankModel`
+  - `CBoundedAdditiveRankModel`
+
+## Ranking Model Selection Guide
+
+| Model | When to use | Expected inputs |
+|---|---|---|
+| `AdditiveRankModel` | You want a custom decomposable numeric score and can define local bag scoring logic directly. | `local_fn(node_id, bag_assignment) -> float` |
+| `ConstantRankModel` | You want no scoring preference (all answers same score) and rely on deterministic tie-breaking. | `value` (single constant float) |
+| `TupleBasedRankModel` | Your score is a sum of base-tuple weights (relation-tuple contributions). | `cq`, `td`, `tuple_weights: {relation_name: {(tuple_values): weight}}` |
+| `VertexBasedRankModel` | Your score is a sum of variable-value weights (attribute/domain-value contributions). | `td`, `vertex_weights: {var: {value: weight}}` |
+| `LexicographicRankModel` | You need lexicographic ranking instead of scalar additive ranking. | `td`, `lex_order` (ordered variables, ascending) |
+| `CBoundedAdditiveRankModel` | You want additive ranking plus runtime enforcement of practical acyclic c-bounded local-score constraints. | `local_fn(node_id, bag_assignment) -> float`, `c` (positive int) |
 
 ## Setup
 
@@ -94,7 +112,47 @@ assert enum_out == oracle_out
 print("Iterator output matches oracle.")
 ```
 
-## End-to-end Example 3: Run Benchmark Scripts
+## End-to-end Example 3: Alternative Ranking Models
+
+```python
+from ranked_enumeration import (
+    CBoundedAdditiveRankModel,
+    LexicographicRankModel,
+    TupleBasedRankModel,
+    VertexBasedRankModel,
+)
+
+# Tuple-based (weight per base relation tuple)
+tuple_rank = TupleBasedRankModel(
+    cq=cq,
+    td=td,
+    tuple_weights={
+        "R": {(1, 10): 2.0, (2, 10): 1.0, (3, 11): 4.0},
+        "S": {(10, 100): 1.0, (10, 101): 3.0, (11, 5): 2.0},
+    },
+)
+
+# Vertex-based (weight per variable assignment)
+vertex_rank = VertexBasedRankModel(
+    td=td,
+    vertex_weights={
+        "x": {1: 0.0, 2: 1.0, 3: 2.0},
+        "y": {10: 0.5, 11: 1.5},
+        "z": {5: 0.0, 100: 2.0, 101: 3.0},
+    },
+)
+
+# Lexicographic (ascending by z, then x, then y)
+lex_rank = LexicographicRankModel(td=td, lex_order=("z", "x", "y"))
+
+# c-bounded additive (raises if the c-bound is violated after reduction)
+c_rank = CBoundedAdditiveRankModel(
+    local_fn=lambda node_id, a: float(sum(v for v in a.values() if isinstance(v, (int, float)))),
+    c=2,
+)
+```
+
+## End-to-end Example 4: Run Benchmark Scripts
 
 ```bash
 python3 bench/bench_topk.py --shape path --size 4 --domain 20 --p 0.08 --k 50 --seed 0
