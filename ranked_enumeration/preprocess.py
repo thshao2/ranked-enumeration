@@ -6,7 +6,7 @@ from typing import Any
 
 from ranked_enumeration.bag_relations import BagRelation
 from ranked_enumeration.decomposition import TreeDecomposition, postorder_nodes
-from ranked_enumeration.ranking import RankModel
+from ranked_enumeration.ranking import RankModel, RankValue, combine_rank_values
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Cell:
     child_indices: tuple[int, ...]
     child_keys: tuple[tuple[Any, ...], ...]
     child_cells: tuple[Cell, ...]
-    score: float
+    score: RankValue
     assignment: dict[str, Any]
     output_tuple: tuple[Any, ...]
     successor: Cell | None = None
@@ -102,7 +102,12 @@ class KeyStream:
                 merged_assignment[var] = value
 
         local = self.node_state.rank_model.local_weight(self.node_state.node_id, bag_assignment)
-        score = self.node_state.rank_model.combine(local, [c.score for c in child_cells])
+        score = combine_rank_values(
+            self.node_state.rank_model,
+            self.node_state.node_id,
+            local,
+            [c.score for c in child_cells],
+        )
 
         output_tuple = tuple(merged_assignment[var] for var in self.node_state.subtree_vars)
         return {
@@ -112,7 +117,7 @@ class KeyStream:
             "child_keys": tuple(child_keys),
             "child_cells": tuple(child_cells),
             "assignment": merged_assignment,
-            "score": float(score),
+            "score": score,
             "output_tuple": output_tuple,
         }
 

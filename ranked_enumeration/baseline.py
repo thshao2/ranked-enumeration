@@ -4,7 +4,7 @@ from typing import Any
 
 from ranked_enumeration.decomposition import TreeDecomposition
 from ranked_enumeration.model import Atom, CQ, Relation, row_to_assignment
-from ranked_enumeration.ranking import RankModel
+from ranked_enumeration.ranking import RankModel, RankValue, combine_rank_values
 
 
 def _consistent(left: dict[str, Any], right: dict[str, Any]) -> bool:
@@ -52,13 +52,13 @@ def score_assignment(
     td: TreeDecomposition,
     rank_model: RankModel,
     assignment: dict[str, Any],
-) -> float:
-    def dfs(node_id: str) -> float:
+) -> RankValue:
+    def dfs(node_id: str) -> RankValue:
         node = td.nodes[node_id]
         local_assignment = {var: assignment[var] for var in node.bag_vars}
         child_scores = [dfs(child_id) for child_id in node.children]
         local = rank_model.local_weight(node_id, local_assignment)
-        return float(rank_model.combine(local, child_scores))
+        return combine_rank_values(rank_model, node_id, local, child_scores)
 
     return dfs(td.root)
 
@@ -71,7 +71,7 @@ def baseline_ranked(
 ) -> list[tuple[Any, ...]]:
     assignments = materialize_full_join(cq, relations)
 
-    scored: list[tuple[float, tuple[Any, ...]]] = []
+    scored: list[tuple[RankValue, tuple[Any, ...]]] = []
     for assignment in assignments:
         out = tuple(assignment[var] for var in cq.output_vars)
         score = score_assignment(td, rank_model, assignment)

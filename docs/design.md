@@ -5,6 +5,7 @@
 - User-provided tree decomposition.
 - Full output variables only (no projection).
 - Set semantics and deterministic tie-breaking `(score, output_tuple_lex)`.
+- Ranking models: additive/constant, tuple-based, vertex-based, lexicographic, and practical c-bounded additive.
 
 ## Pipeline
 1. Validate query/relations/decomposition.
@@ -18,7 +19,20 @@
 - `BagRelation`: tuples over a bag variable ordering.
 - `NodeState`: per decomposition node context, grouped local tuples by separator key.
 - `KeyStream`: lazy min-heap frontier over `(theta, child_indices)` states.
-- `Cell`: selected local tuple + child choices + score + cached successor + merged assignment.
+- `Cell`: selected local tuple + child choices + generic ordered score + cached successor + merged assignment.
+
+## Ranking Models
+- `AdditiveRankModel`: scalar additive score over local bag assignments.
+- `ConstantRankModel`: degenerate additive model with constant local score.
+- `TupleBasedRankModel`: additive sum over relation-tuple weights, with atom ownership induced by decomposition.
+- `VertexBasedRankModel`: additive sum over variable-value weights, with variable ownership induced by decomposition.
+- `LexicographicRankModel`: decomposable lexicographic ranking with variable ownership and configurable variable order.
+- `CBoundedAdditiveRankModel`: additive scoring plus post-reducer c-bounded local-score validation.
+
+## Compatibility Notes
+- Score values are no longer restricted to `float`; they only need to be totally ordered.
+- Legacy `combine(local, child_scores)` methods are supported with a deprecation warning.
+- Models may expose `validate(td, reduced_bag_relations)` and are checked once after reducer.
 
 ## Enumeration Logic
 - Root answers come from successive cells in `Q_root[()]`.

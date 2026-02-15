@@ -33,6 +33,9 @@ class RankedEnumerator:
 
         self._bag_relations: dict[str, BagRelation] = bag_relations
         self._reduced_bag_relations: dict[str, BagRelation] = reduced
+        validator = getattr(rank_model, "validate", None)
+        if callable(validator):
+            validator(td, reduced)
         self._preprocessed: PreprocessedInstance = build_preprocessing(
             td=td,
             bag_relations=reduced,

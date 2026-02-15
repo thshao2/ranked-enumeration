@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from typing import Iterable
 
 from ranked_enumeration.model import Atom, CQ
 
@@ -168,3 +169,18 @@ def atoms_per_node(cq: CQ, td: TreeDecomposition) -> dict[str, list[Atom]]:
     for atom_idx, node_id in owners.items():
         grouped[node_id].append(cq.atoms[atom_idx])
     return grouped
+
+
+def assign_variable_owners(
+    td: TreeDecomposition, variables: Iterable[str]
+) -> dict[str, str]:
+    depths = compute_depths(td)
+    owners: dict[str, str] = {}
+
+    for var in variables:
+        candidates = [node_id for node_id, node in td.nodes.items() if var in node.bag_vars]
+        if not candidates:
+            raise ValueError(f"No valid owner bag found for variable '{var}'")
+        owners[var] = min(candidates, key=lambda node_id: depths[node_id])
+
+    return owners
