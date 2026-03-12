@@ -10,21 +10,25 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ranked_enumeration.baseline import baseline_ranked
-from ranked_enumeration.generators import instantiate_relations, make_path_query, make_star_query
+from ranked_enumeration.generators import instantiate_relations, make_benchmark_query
 from ranked_enumeration.iterator import RankedEnumerator
 from ranked_enumeration.ranking import AdditiveRankModel
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--shape", choices=["path", "star"], default="path")
+    parser.add_argument(
+        "--shape",
+        choices=["path", "star", "binary_tree", "caterpillar"],
+        default="path",
+    )
     parser.add_argument("--size", type=int, default=4)
     parser.add_argument("--domain", type=int, default=20)
     parser.add_argument("--p", type=float, default=0.08)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
-    cq, td = make_path_query(args.size) if args.shape == "path" else make_star_query(args.size)
+    cq, td = make_benchmark_query(args.shape, args.size)
     relations = instantiate_relations(cq, domain_size=args.domain, tuple_probability=args.p, seed=args.seed)
     rank = AdditiveRankModel(lambda _n, a: float(sum(a.values())))
 

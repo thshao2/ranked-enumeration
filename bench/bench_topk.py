@@ -9,13 +9,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from ranked_enumeration.generators import instantiate_relations, make_path_query, make_star_query
+from ranked_enumeration.generators import instantiate_relations, make_benchmark_query
 from ranked_enumeration.iterator import RankedEnumerator
 from ranked_enumeration.ranking import AdditiveRankModel
 
 
 def run_case(shape: str, size: int, domain: int, p: float, k: int, seed: int) -> None:
-    cq, td = make_path_query(size) if shape == "path" else make_star_query(size)
+    cq, td = make_benchmark_query(shape, size)
     relations = instantiate_relations(cq, domain_size=domain, tuple_probability=p, seed=seed)
     rank = AdditiveRankModel(lambda _n, a: float(sum(a.values())))
 
@@ -35,7 +35,11 @@ def run_case(shape: str, size: int, domain: int, p: float, k: int, seed: int) ->
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--shape", choices=["path", "star"], default="path")
+    parser.add_argument(
+        "--shape",
+        choices=["path", "star", "binary_tree", "caterpillar"],
+        default="path",
+    )
     parser.add_argument("--size", type=int, default=4)
     parser.add_argument("--domain", type=int, default=20)
     parser.add_argument("--p", type=float, default=0.08)
